@@ -1,0 +1,298 @@
+---
+title: "survmarker_simulation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{survmarker_simulation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 10,
+  fig.height = 5,
+  fig.retina = 2
+)
+```
+
+## Overview
+
+This vignette demonstrates the SurvMarker workflow using a fully reproducible
+simulation, where a known subset of features drives survival. We illustrate:
+(i) survival-guided PC selection, (ii) empirical-null calibrated feature scoring,
+and (iii) visualization utilities for diagnosing survival-associated structure.
+
+```{r libs, warning=FALSE}
+library(SurvMarker)
+library(survival)
+library(ggplot2)
+```
+
+## 1. Simulate expression and survival
+
+## Data-generating mechanism (simulation)
+
+We simulate a high-dimensional expression matrix with \(n\) samples and \(p\) features. A latent
+variable \(z_i \sim N(0,1)\) induces a shared survival-associated signal across the first
+\(n_{\text{signal}}\) features.
+
+### Expression matrix
+
+For sample \(i=1,\dots,n\) and feature \(j=1,\dots,p\),
+\[
+X_{ij} =
+\begin{cases}
+\varepsilon_{ij} + \alpha z_i, & j = 1,\dots,n_{\text{signal}}, \\
+\varepsilon_{ij}, & j = n_{\text{signal}}+1,\dots,p,
+\end{cases}
+\qquad
+\varepsilon_{ij} \sim N(0,1),
+\]
+where \(\alpha>0\) controls the strength of the latent signal (here \(\alpha = 1.5\)).
+
+### Survival model
+
+Survival times follow a proportional hazards model with linear predictor
+\[
+\eta_i = \gamma z_i,
+\]
+where \(\gamma\) controls the effect size of the latent factor on survival (here \(\gamma = 0.8\)).
+The hazard function is
+\[
+\lambda_i(t) = \lambda_0 \exp(\eta_i),
+\]
+with baseline hazard \(\lambda_0 = 0.08\). Event times are generated as
+\[
+T_i \sim \text{Exponential}\big(\lambda_0 \exp(\eta_i)\big).
+\]
+
+### Right censoring
+
+Independent censoring times are generated as
+\[
+C_i \sim \text{Exponential}(0.02).
+\]
+The observed time and event indicator are
+\[
+\tilde{T}_i = \min(T_i, C_i), \qquad
+\delta_i = \mathbb{I}(T_i \le C_i).
+\]
+
+```{r simulate}
+set.seed(111)
+
+n <- 200
+p <- 6000
+n_signal <- 25   # features driven by survival factor
+
+# Make batch factor dominate variance 
+z <- rnorm(n)
+
+X <- matrix(rnorm(n * p), n, p)
+X[, 1:n_signal] <- X[, 1:n_signal] + 1.5 * z
+
+colnames(X) <- paste0("G", seq_len(p))
+rownames(X) <- paste0("S", seq_len(n))
+
+# Survival depends on z, not u
+lp <- 0.9 * z
+base_rate <- 0.08
+T_event <- rexp(n, rate = base_rate * exp(scale(lp)))
+C <- rexp(n, rate = 0.02)
+time <- pmin(T_event, C)
+status <- as.integer(T_event <= C)
+
+# Simple covariates (optional)
+AGE_CATEGORY <- sample(c("Young", "Old"), n, replace = TRUE)
+SEX <- sample(c("F", "M"), n, replace = TRUE)
+
+meta <- data.frame(
+  AGE_CATEGORY = AGE_CATEGORY,
+  SEX = SEX,
+  stringsAsFactors = FALSE
+)
+rownames(meta) <- rownames(X)
+
+# After z, AGE_CATEGORY, SEX, meta are created:
+
+z_std <- as.numeric(scale(z))
+
+# Adverse increases with survival factor z and age
+p_adverse <- plogis(1.2*z_std + 0.8*(meta$AGE_CATEGORY == "Old") - 0.3)
+
+# Favorable decreases with z and slightly with age
+p_fav <- plogis(-1.0*z_std - 0.4*(meta$AGE_CATEGORY == "Old") + 0.2)
+
+# Intermediate is what's left (with a floor to avoid negatives)
+p_int <- 1 - p_adverse - p_fav
+p_int[p_int < 0.05] <- 0.05
+
+# Renormalize
+s <- p_adverse + p_fav + p_int
+p_adverse <- p_adverse/s; p_fav <- p_fav/s; p_int <- p_int/s
+
+set.seed(111)
+meta$ELN_2022_risk <- vapply(seq_len(nrow(meta)), function(i) {
+  sample(c("Favorable","Intermediate","Adverse"), 1,
+         prob = c(p_fav[i], p_int[i], p_adverse[i]))
+}, character(1))
+
+meta$ELN_2022_risk <- factor(meta$ELN_2022_risk,
+                             levels = c("Favorable","Intermediate","Adverse"))
+
+```
+
+## 2. Run survival-guided PCA feature scoring
+
+We apply the survival-guided PCA feature scoring framework to the simulated dataset using a single
+function call. Principal component analysis is first performed on the normalized expression matrix,
+retaining the top \(n_{\text{pcs}} = 50\) components (with a hard cap of 50 PCs). Each PC is then tested
+for association with survival using Cox proportional hazards models, adjusting for age category and
+sex. Survival-associated PCs are identified by controlling the false discovery rate.
+
+Feature importance is quantified by aggregating loadings across all survival-associated PCs using
+variance-based weighting, yielding a single score for each feature. Statistical significance is
+assessed via an empirical null distribution constructed from non–survival-associated PCs using
+500 resampling iterations.
+
+The resulting object includes a ranked feature table containing each feature’s aggregated score,
+empirical p-value, and FDR-adjusted p-value, along with PC-level summaries and diagnostic outputs.
+
+
+
+```{r run}
+# Ensure ELN is an ordered factor (recommended)
+meta$ELN_2022_risk <- factor(
+  meta$ELN_2022_risk,
+  levels = c("Favorable", "Intermediate", "Adverse")
+)
+
+res <- pca_based_weighted_score(
+  X = X,
+  time = time,
+  status = status,
+  covar = meta[, c("ELN_2022_risk", "AGE_CATEGORY", "SEX"), drop = FALSE],
+  n_pcs = 50,
+  max_pcs = 50,
+  pc_fdr_cutoff = 0.2,
+  feature_fdr_cutoff = 0.05,
+  null_B = 500,
+  seed = 111,
+  scale_pca = TRUE,
+  store_null = TRUE,
+  verbose = FALSE
+)
+
+head(res$feature_table, 10)
+
+```
+
+
+## 2. Visualization
+
+### PC1–PC2 scatter (example grouping)
+
+```{r pc12}
+# Define ELN-2022 color palette
+eln_cols <- c(
+  Favorable    = "#5E9F47",  # green
+  Intermediate = "#bdbdbd",  # grey
+  Adverse      = "#E35408"   # orange/red
+)
+
+# PC1–PC2 scatter colored by ELN-2022 risk
+p_all_eln <- plot_pc12(
+  res,
+  meta,
+  color_by = "ELN_2022_risk",
+  color_values = eln_cols,
+  theme_fn = ggplot2::theme_classic,
+  base_size = 14,
+  legend_position = "bottom",
+  legend_text_size = 12
+)
+
+p_all_eln
+
+```
+
+### Top 2 survival-significant PCs
+
+
+```{r top2pcs}
+p_sig_eln <- plot_top2_survival_pcs(
+  res,
+  meta = meta,
+  color_by = "ELN_2022_risk",
+  color_values = eln_cols,
+  title = "Top 2 Survival-Significant PCs (ELN-2022 Risk)",
+  theme_fn = ggplot2::theme_classic,
+  base_size = 14,
+  legend_position = "bottom",
+  legend_text_size = 12
+)
+
+p_sig_eln
+```
+
+### Scree and cumulative variance
+
+```{r scree}
+plot_scree(res, n_pcs = 100)
+```
+
+```{r cumvar}
+plot_cumvar(res, n_pcs = 100)
+```
+
+### Empirical null vs observed score
+
+We compare a simulated *true* feature to a null feature.
+
+```{r null-vs-obs}
+true_feature <- res$feature_table$feature[1]
+null_feature <- res$feature_table$feature[res$feature_table$p_emp >0.1][5]
+
+plot_null_vs_observed(
+  res, feature = true_feature, bins = 40,
+  theme_fn = ggplot2::theme_classic,
+  base_size = 14
+)
+
+plot_null_vs_observed(
+  res, feature = null_feature, bins = 40,
+  theme_fn = ggplot2::theme_classic,
+  base_size = 14
+)
+```
+
+## 4. Multi-PC sensitivity (optional)
+
+We examine how the selected feature set changes as the number of PCs increases.
+
+```{r multi-pc}
+pcobj <- run_survival_pca_multi_pc(
+  X = X,
+  time = time,
+  status = status,
+  covar = meta[, c("AGE_CATEGORY", "SEX"), drop = FALSE],
+  pcs_to_run = c(10, 50, 20, 30),
+  null_B = 300,
+  store_null = TRUE,
+  verbose = FALSE
+)
+
+venn_plot <- plot_venn(pcobj, pick = c(10, 50, 20, 30), cex = 1.0, cat_cex = 1.0,
+          main = "Overlap of Features Selected Across Multiple Cutoffs")
+venn_plot
+tradeoff_plot <- plot_feature_set_tradeoff(pcobj)
+tradeoff_plot
+```
+
+## Notes
+
+- This simulation vignette runs quickly and is fully reproducible.
+- For manuscripts, you can match plot aesthetics by passing `base_size`, `theme_fn`,
+  and consistent color mappings as shown above.

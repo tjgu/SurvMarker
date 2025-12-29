@@ -1,0 +1,19 @@
+Package: SurvMarker
+Title: Survival-based PCA Feature Scoring
+Version: 0.0.0.9000
+Authors@R: 
+    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
+Description: Survival-based PC selection with empirical null calibration.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports: 
+    rlang,
+    survival,
+    ggplot2,
+    VennDiagram
+Suggests:
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
