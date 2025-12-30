@@ -30,13 +30,32 @@ If you wish to build vignettes:
 remotes::install_github("tjgu/SurvMarker", build_vignettes = TRUE)
 ```
 
-### Option 2 — Install from a source tarball (.tar.gz)
+### Option 2 — Build and install from source (offline / reproducible)
 
 This option is useful for offline use or reproducible deployments.
 
-1. Download the latest SurvMarker_*.tar.gz file from the Releases page.
+#### Option 2A: Build using RStudio (recommended)
 
-2. Install locally in R:
+1. Download the latest **Source code (zip)** from the GitHub **Releases** page and unzip it.
+
+2. Open the project:
+   - Open `SurvMarker.Rproj` in **RStudio**.
+
+3. Build and install:
+   - In RStudio, click **Build → Install and Restart**
+
+4. Load the package:
+```r
+library(SurvMarker)
+```
+
+#### Option 2B: Build manually from source
+
+1. Download the latest Source code (zip) from the GitHub Releases page and unzip it.
+
+2. Set your working directory to the parent directory containing the SurvMarker/ folder.
+
+3. Build and install:
 
 ```r
 install.packages("SurvMarker_0.1.0.tar.gz", repos = NULL, type = "source")
