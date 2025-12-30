@@ -62,6 +62,25 @@ list.files()#optional for checking files
 install.packages(".", repos = NULL, type = "source")
 library(SurvMarker)
 ```
+or
+```r
+install.packages("devtools")  # if needed
+devtools::install(".")
+```
+
+4. If you want to build vignettes, please first check whether pandoc or quarto installed. If not, please install either pandoc or quarto first. If installed, then you can install vignettes using the following commands
+   ```r
+   install.packages("devtools")  # if needed
+   devtools::install(".", build_vignettes = TRUE)
+   browseVignettes("SurvMarker")
+   vignette(package="SurvMarker")
+   ```
+   or
+   ```r
+   install.packages(".", repos=NULL, type="source", vignette=T)
+   browseVignettes("SurvMarker")
+   vignette(package="SurvMarker")
+   ```
 ## Quick Start
 
 ```r
