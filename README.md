@@ -59,7 +59,7 @@ library(SurvMarker)
 
 ```r
 list.files()#optional for checking files
-install.packages("SurvMarker", repos = NULL, type = "source")
+install.packages(".", repos = NULL, type = "source")
 library(SurvMarker)
 ```
 ## Quick Start
