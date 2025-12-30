@@ -36,7 +36,7 @@ This option is useful for offline use or reproducible deployments.
 
 #### Option 2A: Build using RStudio (recommended)
 
-1. Download the latest **Source code (zip)** from the GitHub **Releases** page and unzip it.
+1. Download the latest Source code **(zip)** from the GitHub **Releases** page and unzip it.
 
 2. Open the project:
    - Open `SurvMarker.Rproj` in **RStudio**.
