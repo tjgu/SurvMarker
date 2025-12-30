@@ -283,7 +283,7 @@ pcobj <- run_survival_pca_multi_pc(
 
 venn_plot <- plot_venn(pcobj, pick = c(10, 50, 20, 30), cex = 1.0, cat_cex = 1.0,
           main = "Overlap of Features Selected Across Multiple Cutoffs")
-venn_plot
+
 tradeoff_plot <- plot_feature_set_tradeoff(pcobj)
 tradeoff_plot
 ```
