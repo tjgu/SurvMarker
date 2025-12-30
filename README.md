@@ -58,7 +58,7 @@ library(SurvMarker)
 3. Build and install:
 
 ```r
-install.packages("SurvMarker_0.1.0.tar.gz", repos = NULL, type = "source")
+install.packages("SurvMarker", repos = NULL, type = "source")
 library(SurvMarker)
 ```
 ## Quick Start
