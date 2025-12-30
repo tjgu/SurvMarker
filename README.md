@@ -55,3 +55,13 @@ res <- pca_based_weighted_score(
 
 head(res$feature_table)
 ```
+
+## Dependencies
+
+SurvMarker depends on the following R packages:
+
+- ggplot2
+- survival
+- VennDiagram
+
+These will be installed automatically when installing SurvMarker from GitHub.
