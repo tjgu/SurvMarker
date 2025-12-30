@@ -19,8 +19,7 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript.
-Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based feature score generation. (iii) empirical-null calibrated feature scoring, and (four) visualization utilities for diagnosing survival-associated features.
+This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript. Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based feature score generation. (iii) empirical-null calibrated feature scoring, and (four) visualization utilities for diagnosing survival-associated features.
 
 
 ```{r libs, warning=FALSE}
@@ -155,9 +154,6 @@ Feature importance is quantified by aggregating loadings across all survival-ass
 
 The resulting object includes a ranked feature table containing each feature’s aggregated score, empirical p-value, and FDR-adjusted p-value, along with PC-level summaries and diagnostic outputs. A key optional choice is whether to store the full null score matrix (`null_scores`) by setting (`store_null = TRUE`).
 
-
-
-
 ```{r run}
 # Ensure ELN is an ordered factor (recommended)
 meta$ELN_2022_risk <- factor(
@@ -184,7 +180,6 @@ res <- pca_based_weighted_score(
 head(res$feature_table, 10)
 
 ```
-
 
 ## 3. Visualization
 
