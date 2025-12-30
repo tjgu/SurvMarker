@@ -36,7 +36,7 @@ This option is useful for offline use or reproducible deployments.
 
 #### Option A: Build using RStudio (recommended)
 
-1. Download the latest Source code **(zip)** from the GitHub **Releases** page and unzip it.
+1. Download the latest Source code **(SurvMarker-main.zip)** from the GitHub page and unzip it.
 
 2. Open the project:
    - Open `SurvMarker.Rproj` in **RStudio**.
@@ -51,13 +51,14 @@ library(SurvMarker)
 
 #### Option B: Build manually from source
 
-1. Download the latest Source code (zip) from the GitHub Releases page and unzip it.
+1. Download the latest Source code (SurvMarker-main.zip) from the GitHub page and unzip it.
 
-2. Set your working directory to the parent directory containing the SurvMarker/ folder.
+2. Go inside the SurvMarker-main folder
 
 3. Build and install:
 
 ```r
+list.files()#optional for checking files
 install.packages("SurvMarker", repos = NULL, type = "source")
 library(SurvMarker)
 ```
