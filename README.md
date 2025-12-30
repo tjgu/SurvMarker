@@ -68,19 +68,19 @@ install.packages("devtools")  # if needed
 devtools::install(".")
 ```
 
-4. If you want to build vignettes, please first check whether pandoc or quarto installed. If not, please install either pandoc or quarto first. If installed, then you can install vignettes using the following commands
-   ```r
-   install.packages("devtools")  # if needed
-   devtools::install(".", build_vignettes = TRUE)
-   browseVignettes("SurvMarker")
-   vignette(package="SurvMarker")
-   ```
-   or
-   ```r
-   install.packages(".", repos=NULL, type="source", vignette=T)
-   browseVignettes("SurvMarker")
-   vignette(package="SurvMarker")
-   ```
+4. To build the vignettes, please first check whether Pandoc or Quarto is installed on your system. If neither is installed, please install one of them first. Once Pandoc or Quarto is available, you can build the vignettes using the following commands.
+```r
+install.packages("devtools")  # if needed
+devtools::install(".", build_vignettes = TRUE)
+browseVignettes("SurvMarker")
+vignette(package="SurvMarker")
+```
+or
+```r
+install.packages(".", repos=NULL, type="source", vignette=T)
+browseVignettes("SurvMarker")
+vignette(package="SurvMarker")
+```
 ## Quick Start
 
 ```r
