@@ -19,7 +19,9 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript. Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based feature score generation. (iii) empirical-null calibrated feature scoring, and (four) visualization utilities for diagnosing survival-associated features.
+This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript. 
+
+Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based feature score generation. (iii) empirical-null calibrated feature scoring, and (four) visualization utilities for diagnosing survival-associated features.
 
 
 ```{r libs, warning=FALSE}
