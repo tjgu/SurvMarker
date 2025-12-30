@@ -34,7 +34,7 @@ remotes::install_github("tjgu/SurvMarker", build_vignettes = TRUE)
 
 This option is useful for offline use or reproducible deployments.
 
-#### Option 2A: Build using RStudio (recommended)
+#### Option A: Build using RStudio (recommended)
 
 1. Download the latest Source code **(zip)** from the GitHub **Releases** page and unzip it.
 
@@ -49,7 +49,7 @@ This option is useful for offline use or reproducible deployments.
 library(SurvMarker)
 ```
 
-#### Option 2B: Build manually from source
+#### Option B: Build manually from source
 
 1. Download the latest Source code (zip) from the GitHub Releases page and unzip it.
 
