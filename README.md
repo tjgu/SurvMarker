@@ -114,6 +114,6 @@ If you use this code, please cite our manuscript:
 
 > *SurvMarker: An R Package for Identifying Survival-Associated Molecular Features Using PCA-Based Weighted Scores*  
 > Authors: [Dona Hasini Gammune, Tongjun Gu]  
-> [Journal/Preprint], Year.  
+> [BioRxiv], 2025.  
 
-(Preprint/DOI link will be added here upon publication.)
+([Preprint/DOI link will be added here upon publication.](https://www.biorxiv.org/content/10.64898/2025.12.31.697184v1))
