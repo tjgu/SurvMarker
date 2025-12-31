@@ -104,3 +104,16 @@ SurvMarker depends on the following R packages:
 - VennDiagram
 
 These will be installed automatically when installing SurvMarker from GitHub.
+
+## Contact
+tgu at versiti.org
+
+## Citation
+
+If you use this code, please cite our manuscript:
+
+> *SurvMarker: An R Package for Identifying Survival-Associated Molecular Features Using PCA-Based Weighted Scores*  
+> Authors: [Dona Hasini Gammune, Tongjun Gu]  
+> [Journal/Preprint], Year.  
+
+(Preprint/DOI link will be added here upon publication.)
