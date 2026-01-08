@@ -114,38 +114,40 @@ pca_based_weighted_score <- function(
   pc_scores <- pca$x[, seq_len(K), drop = FALSE]
   colnames(pc_scores) <- paste0("PC", seq_len(K))
   
-  # ---------------- Step 1: Cox test each PC ----------------
-  pc_p <- pc_beta <- pc_hr <- rep(NA_real_, K)
-  base_df <- data.frame(time = time, status = status)
-  if (!is.null(covar)) base_df <- cbind(base_df, covar)
+  # ============================================================
+  # Step 1: JOINT Cox model on ALL PCs (and covariates, if given)
+  # ============================================================
+  pc_data <- data.frame(time = time, status = status, pc_scores)
+  
+  if (!is.null(covar)) pc_data <- cbind(pc_data, covar)
+  
+  fit_all <- survival::coxph(
+    survival::Surv(time, status) ~ .,
+    data = pc_data,
+    ties = "efron",
+    control = survival::coxph.control(iter.max = 100)
+  )
+  
+  sm_all <- summary(fit_all)$coefficients
+  
+  # Extract per-PC stats from the joint model
+  pc_names <- colnames(pc_scores)
+  pc_beta <- pc_hr <- pc_p <- rep(NA_real_, K)
+  names(pc_beta) <- names(pc_hr) <- names(pc_p) <- pc_names
   
   for (k in seq_len(K)) {
-    dfk <- cbind(base_df, PCk = pc_scores[, k])
-    
-    if (is.null(covar)) {
-      fml <- survival::Surv(time, status) ~ PCk
-    } else {
-      fml <- stats::as.formula(
-        paste0("survival::Surv(time, status) ~ PCk + ",
-               paste(colnames(covar), collapse = " + "))
-      )
+    nm <- pc_names[k]
+    if (nm %in% rownames(sm_all)) {
+      pc_beta[k] <- sm_all[nm, "coef"]
+      pc_hr[k]   <- sm_all[nm, "exp(coef)"]
+      pc_p[k]    <- sm_all[nm, "Pr(>|z|)"]
     }
-    
-    fit <- survival::coxph(fml, data = dfk, ties = "efron")
-    sm <- summary(fit)
-    
-    pc_row <- which(rownames(sm$coefficients) == "PCk")
-    if (length(pc_row) != 1) stop("Unexpected coefficient row for PCk at k=", k)
-    
-    pc_beta[k] <- sm$coefficients[pc_row, "coef"]
-    pc_hr[k]   <- sm$coefficients[pc_row, "exp(coef)"]
-    pc_p[k]    <- sm$coefficients[pc_row, "Pr(>|z|)"]
   }
   
-  pc_padj <- stats::p.adjust(pc_p, method = "BH")
+  pc_padj <- stats::p.adjust(pc_p, method = "fdr")
   
   pc_table <- data.frame(
-    PC = paste0("PC", seq_len(K)),
+    PC = pc_names,
     eigenvalue = eig[seq_len(K)],
     var_explained = eig[seq_len(K)] / sum(eig),
     cum_var = cum_var_all[seq_len(K)],
