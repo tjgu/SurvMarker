@@ -19,10 +19,11 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript.
+This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript. 
 
-Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based weighted feature score generation, (iii) empirical-null calibrated feature scoring, and (iv) visualization utilities for diagnosing survival-associated features.
+Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based feature score generation. (iii) empirical-null calibrated feature scoring, and (iv) visualization utilities for diagnosing survival-associated features.
 
+For real datasets (e.g., RNA-seq or miRNA expression), input matrices should be preprocessed prior to analysis. Raw count data should be normalized using Trimmed Mean of M-values (TMM) normalization and subsequently transformed to log2 scale (e.g., via edgeR, DESeq2) before applying SurvMarker.
 
 ```{r libs, warning=FALSE}
 library(SurvMarker)
@@ -150,14 +151,11 @@ meta$ELN_2022_risk <- factor(meta$ELN_2022_risk,
 
 ## 2. Generate PCA-based feature score
 
-We apply the PCA-based weighted feature scoring framework to the simulated dataset using a single function call. PCA is first performed on the normalized expression matrix, retaining the top \(n_{\text{pcs}} = 50\) components (with a hard cap of 50 PCs). Each PC is then tested for association with survival using Cox proportional hazards models, adjusting for age category and sex. Survival-associated PCs are identified by controlling the false discovery rate at \(\text{FDR} \le 0.2\). Note, the default is 0.05, which is highly recommended.
+We apply the PCA-based feature scoring framework to the simulated dataset using a single function call. Principal component analysis is first performed on the normalized expression matrix, retaining the top \(n_{\text{pcs}} = 50\) components (with a hard cap of 50 PCs). Each PC is then tested for association with survival using Cox proportional hazards models, adjusting for age category and sex. Survival-associated PCs are identified by controlling the false discovery rate at \(\text{FDR} \le 0.2\). Note, the default is 0.05, which is highly recommended.
 
-Feature importance is quantified by aggregating loading across all survival-associated PCs using variance-based weighting, yielding a single score for each feature. Statistical significance is assessed via an empirical null distribution constructed from non–survival-associated PCs using 500 resampling iterations.
+Feature importance is quantified by aggregating loadings across all survival-associated PCs using variance-based weighting, yielding a single score for each feature. Statistical significance is assessed via an empirical null distribution constructed from non–survival-associated PCs using 500 resampling iterations.
 
-The resulting object includes a ranked feature table containing each feature’s aggregated score, empirical p-value, and BH-adjusted p-value, along with PC-level summaries and diagnostic outputs. A key optional choice is whether to store the full null score matrix (`null_scores`) by setting (`store_null = TRUE`).
-
-
-
+The resulting object includes a ranked feature table containing each feature’s aggregated score, empirical p-value, and FDR-adjusted p-value, along with PC-level summaries and diagnostic outputs. A key optional choice is whether to store the full null score matrix (`null_scores`) by setting (`store_null = TRUE`).
 
 ```{r run}
 # Ensure ELN is an ordered factor (recommended)
@@ -182,10 +180,8 @@ res <- pca_based_weighted_score(
   verbose = FALSE
 )
 
-head(res$feature_table, 10)
 
 ```
-
 
 ## 3. Visualization
 
@@ -256,13 +252,19 @@ plot_null_vs_observed(
   res, feature = true_feature, bins = 40,
   theme_fn = ggplot2::theme_classic,
   base_size = 14
-)
+)+
+  scale_x_continuous(
+    expand = expansion(mult = c(0.02, 0.1))
+  )
 
 plot_null_vs_observed(
   res, feature = null_feature, bins = 40,
   theme_fn = ggplot2::theme_classic,
   base_size = 14
-)
+)+
+  scale_x_continuous(
+    expand = expansion(mult = c(0.02, 0.08))
+  )
 ```
 
 ## 4. Multi-PC sensitivity examination
