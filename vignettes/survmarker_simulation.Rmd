@@ -19,11 +19,10 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates the SurvMarker workflow using a gene expression dataset and a feature set generated through simulation, in which a predefined subset of features is artificially associated with patient survival. This example is intended solely to illustrate the usage of the package and does not represent a real biological scenario. A real biological application is presented in our manuscript. 
-
-Here, using simulated datasets, we illustrate: (i) selection of survival-associated Principal Components (PCs), (ii) PCA-based feature score generation. (iii) empirical-null calibrated feature scoring, and (iv) visualization utilities for diagnosing survival-associated features.
-
-For real datasets (e.g., RNA-seq or miRNA expression), input matrices should be preprocessed prior to analysis. Raw count data should be normalized using Trimmed Mean of M-values (TMM) normalization and subsequently transformed to log2 scale (e.g., via edgeR, DESeq2) before applying SurvMarker.
+This vignette demonstrates the SurvMarker workflow using a fully reproducible
+simulation, where a known subset of features drives survival. We illustrate:
+(i) survival-guided PC selection, (ii) empirical-null calibrated feature scoring,
+and (iii) visualization utilities for diagnosing survival-associated structure.
 
 ```{r libs, warning=FALSE}
 library(SurvMarker)
@@ -59,7 +58,7 @@ Survival times follow a proportional hazards model with linear predictor
 \[
 \eta_i = \gamma z_i,
 \]
-where \(\gamma\) controls the effect size of the latent factor on survival (here \(\gamma = 0.9\)).
+where \(\gamma\) controls the effect size of the latent factor on survival (here \(\gamma = 0.8\)).
 The hazard function is
 \[
 \lambda_i(t) = \lambda_0 \exp(\eta_i),
@@ -80,10 +79,6 @@ The observed time and event indicator are
 \tilde{T}_i = \min(T_i, C_i), \qquad
 \delta_i = \mathbb{I}(T_i \le C_i).
 \]
-
-### Clinical covariates and risk groups
-
-Two additional clinical covariates—age category (Young/Old) and sex (F/M)—are generated independently of the expression matrix. An ELN-like risk group is then assigned probabilistically based on the standardized latent survival factor $z_i$ and age, such that higher values of $z_i$ increase the probability of an Adverse risk classification and decrease the probability of a Favorable classification. The remaining probability mass is assigned to the Intermediate group, and all probabilities are renormalized to ensure valid group assignments across the Favorable, Intermediate, and Adverse categories.
 
 ```{r simulate}
 set.seed(111)
@@ -149,13 +144,23 @@ meta$ELN_2022_risk <- factor(meta$ELN_2022_risk,
 
 ```
 
-## 2. Generate PCA-based feature score
+## 2. Run survival-guided PCA feature scoring
 
-We apply the PCA-based feature scoring framework to the simulated dataset using a single function call. Principal component analysis is first performed on the normalized expression matrix, retaining the top \(n_{\text{pcs}} = 50\) components (with a hard cap of 50 PCs). Each PC is then tested for association with survival using Cox proportional hazards models, adjusting for age category and sex. Survival-associated PCs are identified by controlling the false discovery rate at \(\text{FDR} \le 0.2\). Note, the default is 0.05, which is highly recommended.
+We apply the survival-guided PCA feature scoring framework to the simulated dataset using a single
+function call. Principal component analysis is first performed on the normalized expression matrix,
+retaining the top \(n_{\text{pcs}} = 50\) components (with a hard cap of 50 PCs). Each PC is then tested
+for association with survival using Cox proportional hazards models, adjusting for age category and
+sex. Survival-associated PCs are identified by controlling the false discovery rate.
 
-Feature importance is quantified by aggregating loadings across all survival-associated PCs using variance-based weighting, yielding a single score for each feature. Statistical significance is assessed via an empirical null distribution constructed from non–survival-associated PCs using 500 resampling iterations.
+Feature importance is quantified by aggregating loadings across all survival-associated PCs using
+variance-based weighting, yielding a single score for each feature. Statistical significance is
+assessed via an empirical null distribution constructed from non–survival-associated PCs using
+500 resampling iterations.
 
-The resulting object includes a ranked feature table containing each feature’s aggregated score, empirical p-value, and FDR-adjusted p-value, along with PC-level summaries and diagnostic outputs. A key optional choice is whether to store the full null score matrix (`null_scores`) by setting (`store_null = TRUE`).
+The resulting object includes a ranked feature table containing each feature’s aggregated score,
+empirical p-value, and FDR-adjusted p-value, along with PC-level summaries and diagnostic outputs.
+
+
 
 ```{r run}
 # Ensure ELN is an ordered factor (recommended)
@@ -171,19 +176,22 @@ res <- pca_based_weighted_score(
   covar = meta[, c("ELN_2022_risk", "AGE_CATEGORY", "SEX"), drop = FALSE],
   n_pcs = 50,
   max_pcs = 50,
-  pc_fdr_cutoff = 0.2,
+  pc_cutoff = 0.2,
   feature_fdr_cutoff = 0.05,
   null_B = 500,
   seed = 111,
+  weight_type = "variance",
   scale_pca = TRUE,
   store_null = TRUE,
   verbose = FALSE
 )
 
+head(res$feature_table, 10)
 
 ```
 
-## 3. Visualization
+
+## 2. Visualization
 
 ### PC1–PC2 scatter (example grouping)
 
@@ -252,22 +260,16 @@ plot_null_vs_observed(
   res, feature = true_feature, bins = 40,
   theme_fn = ggplot2::theme_classic,
   base_size = 14
-)+
-  scale_x_continuous(
-    expand = expansion(mult = c(0.02, 0.1))
-  )
+)
 
 plot_null_vs_observed(
   res, feature = null_feature, bins = 40,
   theme_fn = ggplot2::theme_classic,
   base_size = 14
-)+
-  scale_x_continuous(
-    expand = expansion(mult = c(0.02, 0.08))
-  )
+)
 ```
 
-## 4. Multi-PC sensitivity examination
+## 4. Multi-PC sensitivity (optional)
 
 We examine how the selected feature set changes as the number of PCs increases.
 
@@ -279,6 +281,7 @@ pcobj <- run_survival_pca_multi_pc(
   covar = meta[, c("AGE_CATEGORY", "SEX"), drop = FALSE],
   pcs_to_run = c(10, 50, 20, 30),
   null_B = 300,
+  weight_type = "variance",
   store_null = TRUE,
   verbose = FALSE
 )
@@ -295,3 +298,4 @@ tradeoff_plot
 - This simulation vignette runs quickly and is fully reproducible.
 - For manuscripts, you can match plot aesthetics by passing `base_size`, `theme_fn`,
   and consistent color mappings as shown above.
+

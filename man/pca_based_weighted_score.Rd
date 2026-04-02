@@ -12,22 +12,22 @@ pca_based_weighted_score(
   n_pcs = 50,
   cumvar_threshold = NULL,
   max_pcs = 50,
-  pc_fdr_cutoff = 0.05,
+  pc_cutoff = 0.05,
   feature_fdr_cutoff = 0.05,
   null_B = 500,
   seed = 1,
   scale_pca = TRUE,
-  use_abs_loadings = TRUE,
+  weight_type = c("variance", "outcome"),
   store_null = TRUE,
   verbose = TRUE
 )
 }
 \arguments{
-\item{X}{Numeric matrix/data.frame (n_samples x p_features). Rows=samples, cols=features.}
+\item{X}{Numeric matrix/data.frame (n_samples x p_features). Rows = samples, cols = features.}
 
 \item{time}{Numeric survival times (same order as rows of X).}
 
-\item{status}{Event indicator (0/1). 1=event, 0=censored.}
+\item{status}{Event indicator (0/1). 1 = event, 0 = censored.}
 
 \item{covar}{Optional data.frame of covariates (n_samples rows).}
 
@@ -39,7 +39,7 @@ are provided, cumvar_threshold takes precedence.}
 
 \item{max_pcs}{Hard cap on number of PCs allowed (safety cap; default 50).}
 
-\item{pc_fdr_cutoff}{FDR cutoff for selecting survival-associated PCs (default 0.05).}
+\item{pc_cutoff}{FDR cutoff for selecting survival-associated PCs (default 0.05).}
 
 \item{feature_fdr_cutoff}{FDR cutoff for selecting features from empirical null (default 0.05).}
 
@@ -47,9 +47,12 @@ are provided, cumvar_threshold takes precedence.}
 
 \item{seed}{Random seed.}
 
-\item{scale_pca}{Scale features in PCA.}
+\item{scale_pca}{Logical; whether to scale features in PCA.}
 
-\item{use_abs_loadings}{Use |loading| in score definition.}
+\item{weight_type}{Character string specifying PC weighting scheme:
+"variance" (default) or "outcome".
+- variance: w_k ∝ lambda_k
+- outcome:  w_k ∝ lambda_k * (-log(p_k))}
 
 \item{store_null}{If TRUE, return full null score matrix (features x B).}
 

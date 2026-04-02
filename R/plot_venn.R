@@ -6,11 +6,13 @@
 #' @param covar Optional data.frame of covariates (n_samples rows).
 #' @param pcs_to_run Integer vector of requested PC counts.
 #' @param max_pcs Hard cap on PCs (passed to pca_based_weighted_score).
-#' @param pc_fdr_cutoff PC-level FDR cutoff.
-#' @param feature_fdr_cutoff feature-level FDR cutoff.
+#' @param pc_cutoff PC-level FDR cutoff.
+#' @param feature_fdr_cutoff Feature-level FDR cutoff.
 #' @param null_B Number of null resamples.
 #' @param seed Random seed.
 #' @param scale_pca Logical.
+#' @param weight_type Character string specifying PC weighting scheme:
+#'        "variance" (default) or "outcome".
 #' @param store_null Logical.
 #' @param verbose Logical.
 #'
@@ -20,14 +22,17 @@ run_survival_pca_multi_pc <- function(
     X, time, status, covar = NULL,
     pcs_to_run = c(10, 20, 30, 50),
     max_pcs = 2000,
-    pc_fdr_cutoff = 0.05,
+    pc_cutoff = 0.05,
     feature_fdr_cutoff = 0.05,
     null_B = 500,
     seed = 1,
     scale_pca = TRUE,
+    weight_type = c("variance", "outcome"),
     store_null = FALSE,
     verbose = TRUE
 ) {
+  weight_type <- match.arg(weight_type)
+
   pcs_to_run <- as.integer(unique(pcs_to_run))
   if (length(pcs_to_run) < 2) stop("pcs_to_run must contain at least 2 values.")
 
@@ -36,15 +41,18 @@ run_survival_pca_multi_pc <- function(
   k_used_map <- setNames(rep(NA_integer_, length(pcs_to_run)), paste0("PC", pcs_to_run))
 
   for (k in pcs_to_run) {
-    if (verbose) message("Running n_pcs = ", k)
+    if (verbose) {
+      message("Running n_pcs = ", k, " with weight_type = ", weight_type)
+    }
 
     res_k <- pca_based_weighted_score(
       X = X, time = time, status = status, covar = covar,
       n_pcs = k, max_pcs = max_pcs,
-      pc_fdr_cutoff = pc_fdr_cutoff,
+      pc_cutoff = pc_cutoff,
       feature_fdr_cutoff = feature_fdr_cutoff,
       null_B = null_B, seed = seed,
       scale_pca = scale_pca,
+      weight_type = weight_type,
       store_null = store_null,
       verbose = verbose
     )
@@ -64,9 +72,14 @@ run_survival_pca_multi_pc <- function(
     cumvar_map = cumvar_map,
     k_used_map = k_used_map,
     settings = list(
-      pcs_to_run = pcs_to_run, max_pcs = max_pcs,
-      pc_fdr_cutoff = pc_fdr_cutoff, feature_fdr_cutoff = feature_fdr_cutoff,
-      null_B = null_B, seed = seed, scale_pca = scale_pca
+      pcs_to_run = pcs_to_run,
+      max_pcs = max_pcs,
+      pc_cutoff = pc_cutoff,
+      feature_fdr_cutoff = feature_fdr_cutoff,
+      null_B = null_B,
+      seed = seed,
+      scale_pca = scale_pca,
+      weight_type = weight_type
     )
   )
 }
@@ -228,43 +241,43 @@ plot_feature_set_tradeoff <- function(
   if (is.null(pcobj$cumvar_map) || length(pcobj$cumvar_map) == 0) {
     stop("pcobj$cumvar_map is missing/empty. Ensure run_survival_pca_multi_pc() returns cumvar_map.")
   }
-  
+
   keys <- intersect(names(pcobj$cumvar_map), names(pcobj$feature_sets))
   if (length(keys) < 2) stop("Need at least 2 PC sets with both feature sets and cumvar values.")
-  
+
   pcs <- as.integer(sub("^PC", "", keys))
-  
+
   df <- data.frame(
     pc_requested = pcs,
     n_features = as.integer(vapply(pcobj$feature_sets[keys], length, integer(1))),
     cumvar = as.numeric(pcobj$cumvar_map[keys]),
     stringsAsFactors = FALSE
   )
-  
+
   df <- df[order(df$pc_requested), ]
   df$cumvar_pct <- 100 * pmin(df$cumvar, 1)
-  
+
   # scale cumvar (%) onto feature axis (dual-axis display)
   scale_factor <- max(df$n_features, na.rm = TRUE) / max(df$cumvar_pct, na.rm = TRUE)
   df$cumvar_scaled <- df$cumvar_pct * scale_factor
-  
+
   # feature axis breaks
   y_max <- max(df$n_features, na.rm = TRUE)
   y_lim <- max(feature_break_by, ceiling(y_max / feature_break_by) * feature_break_by)
   y_breaks <- seq(0, y_lim, by = feature_break_by)
-  
+
   ggplot2::ggplot(df, ggplot2::aes(x = pc_requested)) +
-    
+
     ggplot2::geom_line(
       ggplot2::aes(y = n_features, color = "Selected features"),
       linewidth = 1.5
     ) +
-    
+
     ggplot2::geom_line(
       ggplot2::aes(y = cumvar_scaled, color = "Cumulative variance"),
       linewidth = 1.5
     ) +
-    
+
     ggplot2::scale_color_manual(
       name = NULL,
       values = c(
@@ -272,7 +285,7 @@ plot_feature_set_tradeoff <- function(
         "Cumulative variance" = cumvar_color
       )
     ) +
-    
+
     ggplot2::scale_y_continuous(
       name = ylab_left,
       breaks = y_breaks,
@@ -282,7 +295,7 @@ plot_feature_set_tradeoff <- function(
         name = ylab_right
       )
     ) +
-    
+
     ggplot2::labs(title = title, x = xlab) +
     ggplot2::theme_classic(base_size = base_size) +
     ggplot2::theme(

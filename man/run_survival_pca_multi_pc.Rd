@@ -11,11 +11,12 @@ run_survival_pca_multi_pc(
   covar = NULL,
   pcs_to_run = c(10, 20, 30, 50),
   max_pcs = 2000,
-  pc_fdr_cutoff = 0.05,
+  pc_cutoff = 0.05,
   feature_fdr_cutoff = 0.05,
   null_B = 500,
   seed = 1,
   scale_pca = TRUE,
+  weight_type = c("variance", "outcome"),
   store_null = FALSE,
   verbose = TRUE
 )
@@ -33,15 +34,18 @@ run_survival_pca_multi_pc(
 
 \item{max_pcs}{Hard cap on PCs (passed to pca_based_weighted_score).}
 
-\item{pc_fdr_cutoff}{PC-level FDR cutoff.}
+\item{pc_cutoff}{PC-level FDR cutoff.}
 
-\item{feature_fdr_cutoff}{feature-level FDR cutoff.}
+\item{feature_fdr_cutoff}{Feature-level FDR cutoff.}
 
 \item{null_B}{Number of null resamples.}
 
 \item{seed}{Random seed.}
 
 \item{scale_pca}{Logical.}
+
+\item{weight_type}{Character string specifying PC weighting scheme:
+"variance" (default) or "outcome".}
 
 \item{store_null}{Logical.}
 
