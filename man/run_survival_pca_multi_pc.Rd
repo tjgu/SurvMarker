@@ -34,7 +34,7 @@ run_survival_pca_multi_pc(
 
 \item{max_pcs}{Hard cap on PCs (passed to pca_based_weighted_score).}
 
-\item{pc_cutoff}{PC-level FDR cutoff.}
+\item{pc_cutoff}{PC-level p-value cutoff.}
 
 \item{feature_fdr_cutoff}{Feature-level FDR cutoff.}
 

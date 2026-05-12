@@ -32,19 +32,19 @@ run_survival_pca_multi_pc <- function(
     verbose = TRUE
 ) {
   weight_type <- match.arg(weight_type)
-
+  
   pcs_to_run <- as.integer(unique(pcs_to_run))
   if (length(pcs_to_run) < 2) stop("pcs_to_run must contain at least 2 values.")
-
+  
   feature_lists <- list()
   cumvar_map <- setNames(rep(NA_real_, length(pcs_to_run)), paste0("PC", pcs_to_run))
   k_used_map <- setNames(rep(NA_integer_, length(pcs_to_run)), paste0("PC", pcs_to_run))
-
+  
   for (k in pcs_to_run) {
     if (verbose) {
       message("Running n_pcs = ", k, " with weight_type = ", weight_type)
     }
-
+    
     res_k <- pca_based_weighted_score(
       X = X, time = time, status = status, covar = covar,
       n_pcs = k, max_pcs = max_pcs,
@@ -56,17 +56,17 @@ run_survival_pca_multi_pc <- function(
       store_null = store_null,
       verbose = verbose
     )
-
+    
     key <- paste0("PC", k)
     feature_lists[[key]] <- res_k$selected_features
-
+    
     if (!is.null(res_k$pc_table) && "cum_var" %in% colnames(res_k$pc_table)) {
       k_avail <- nrow(res_k$pc_table)
       k_used_map[[key]] <- k_avail
       cumvar_map[[key]] <- res_k$pc_table$cum_var[k_avail]
     }
   }
-
+  
   list(
     feature_sets = feature_lists,
     cumvar_map = cumvar_map,
@@ -118,15 +118,15 @@ plot_venn <- function(
   if (is.null(pcset_obj$feature_sets)) {
     stop("pcset_obj must contain $feature_sets (use run_survival_pca_multi_pc()).")
   }
-
+  
   label_mode <- match.arg(label_mode)
   pick <- as.integer(unique(pick))
   if (length(pick) < 2 || length(pick) > 5) {
     stop("pick must contain between 2 and 5 PC values.")
   }
-
+  
   keys <- paste0("PC", pick)
-
+  
   missing_keys <- setdiff(keys, names(pcset_obj$feature_sets))
   if (length(missing_keys) > 0) {
     stop(
@@ -135,25 +135,25 @@ plot_venn <- function(
       ". Run them first in pcs_to_run."
     )
   }
-
+  
   feature_sets <- pcset_obj$feature_sets[keys]
-
+  
   # ---- label helpers ----
   fmt_cum <- function(x) sprintf("%.1f%%", 100 * pmin(x, 1))
-
+  
   n_features <- sapply(feature_sets, length)
   cumv <- if (!is.null(pcset_obj$cumvar_map)) pcset_obj$cumvar_map[keys] else rep(NA_real_, length(keys))
   used <- if (!is.null(pcset_obj$k_used_map)) pcset_obj$k_used_map[keys] else rep(NA_integer_, length(keys))
-
+  
   # base title line per set
   lbl <- paste0("Top", pick, " PCs")
-
+  
   # add requested label content
   add_line <- function(base, line) {
     if (is.na(line) || is.null(line) || length(line) == 0) return(base)
     paste0(base, "\n", line)
   }
-
+  
   for (i in seq_along(lbl)) {
     if (label_mode == "both") {
       lbl[i] <- add_line(lbl[i], paste0("n=", n_features[i]))
@@ -165,22 +165,22 @@ plot_venn <- function(
     } else if (label_mode == "none") {
       # keep only "TopXXX PCs"
     }
-
+    
     if (isTRUE(show_used)) {
       lbl[i] <- add_line(lbl[i], paste0("used=", used[i]))
     }
   }
-
+  
   names(feature_sets) <- lbl
-
+  
   # ---- colors ----
   default_fill <- c("#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628")
   if (is.null(fill)) fill <- default_fill
-
+  
   if (length(fill) < length(feature_sets)) {
     stop("Provide at least ", length(feature_sets), " colors in `fill` (or leave fill=NULL for defaults).")
   }
-
+  
   venn.plot <- VennDiagram::venn.diagram(
     x = feature_sets,
     filename = NULL,
@@ -199,10 +199,10 @@ plot_venn <- function(
     main.fontfamily = "Arial",
     cat.fontfamily = "Arial"
   )
-
+  
   grid::grid.newpage()
   grid::grid.draw(venn.plot)
-
+  
   invisible(venn.plot)
 }
 
@@ -241,43 +241,43 @@ plot_feature_set_tradeoff <- function(
   if (is.null(pcobj$cumvar_map) || length(pcobj$cumvar_map) == 0) {
     stop("pcobj$cumvar_map is missing/empty. Ensure run_survival_pca_multi_pc() returns cumvar_map.")
   }
-
+  
   keys <- intersect(names(pcobj$cumvar_map), names(pcobj$feature_sets))
   if (length(keys) < 2) stop("Need at least 2 PC sets with both feature sets and cumvar values.")
-
+  
   pcs <- as.integer(sub("^PC", "", keys))
-
+  
   df <- data.frame(
     pc_requested = pcs,
     n_features = as.integer(vapply(pcobj$feature_sets[keys], length, integer(1))),
     cumvar = as.numeric(pcobj$cumvar_map[keys]),
     stringsAsFactors = FALSE
   )
-
+  
   df <- df[order(df$pc_requested), ]
   df$cumvar_pct <- 100 * pmin(df$cumvar, 1)
-
+  
   # scale cumvar (%) onto feature axis (dual-axis display)
   scale_factor <- max(df$n_features, na.rm = TRUE) / max(df$cumvar_pct, na.rm = TRUE)
   df$cumvar_scaled <- df$cumvar_pct * scale_factor
-
+  
   # feature axis breaks
   y_max <- max(df$n_features, na.rm = TRUE)
   y_lim <- max(feature_break_by, ceiling(y_max / feature_break_by) * feature_break_by)
   y_breaks <- seq(0, y_lim, by = feature_break_by)
-
+  
   ggplot2::ggplot(df, ggplot2::aes(x = pc_requested)) +
-
+    
     ggplot2::geom_line(
       ggplot2::aes(y = n_features, color = "Selected features"),
       linewidth = 1.5
     ) +
-
+    
     ggplot2::geom_line(
       ggplot2::aes(y = cumvar_scaled, color = "Cumulative variance"),
       linewidth = 1.5
     ) +
-
+    
     ggplot2::scale_color_manual(
       name = NULL,
       values = c(
@@ -285,7 +285,7 @@ plot_feature_set_tradeoff <- function(
         "Cumulative variance" = cumvar_color
       )
     ) +
-
+    
     ggplot2::scale_y_continuous(
       name = ylab_left,
       breaks = y_breaks,
@@ -295,7 +295,7 @@ plot_feature_set_tradeoff <- function(
         name = ylab_right
       )
     ) +
-
+    
     ggplot2::labs(title = title, x = xlab) +
     ggplot2::theme_classic(base_size = base_size) +
     ggplot2::theme(

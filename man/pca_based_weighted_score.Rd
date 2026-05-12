@@ -39,7 +39,7 @@ are provided, cumvar_threshold takes precedence.}
 
 \item{max_pcs}{Hard cap on number of PCs allowed (safety cap; default 50).}
 
-\item{pc_cutoff}{FDR cutoff for selecting survival-associated PCs (default 0.05).}
+\item{pc_cutoff}{Cutoff p-value for selecting survival-associated PCs (default 0.05).}
 
 \item{feature_fdr_cutoff}{FDR cutoff for selecting features from empirical null (default 0.05).}
 
