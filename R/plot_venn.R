@@ -6,7 +6,7 @@
 #' @param covar Optional data.frame of covariates (n_samples rows).
 #' @param pcs_to_run Integer vector of requested PC counts.
 #' @param max_pcs Hard cap on PCs (passed to pca_based_weighted_score).
-#' @param pc_cutoff PC-level FDR cutoff.
+#' @param pc_cutoff PC-level p-value cutoff.
 #' @param feature_fdr_cutoff Feature-level FDR cutoff.
 #' @param null_B Number of null resamples.
 #' @param seed Random seed.
