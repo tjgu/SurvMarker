@@ -11,7 +11,7 @@
 #'        are provided, cumvar_threshold takes precedence.
 #' @param max_pcs Hard cap on number of PCs allowed (safety cap; default 50).
 #'
-#' @param pc_cutoff cutoff for selecting survival-associated PCs (default 0.05).
+#' @param pc_cutoff Cutoff p-value for selecting survival-associated PCs (default 0.05).
 #' @param feature_fdr_cutoff FDR cutoff for selecting features from empirical null (default 0.05).
 #'
 #' @param null_B Number of null resamples (default 500).
